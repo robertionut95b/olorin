@@ -1,0 +1,12 @@
+{
+  "projects": {
+    "olorin": {
+      "schemaPath": "src/schema.graphql",
+      "extensions": {
+        "endpoints": {
+          "dev": "http://localhost:8000/graphql"
+        }
+      }
+    }
+  }
+}

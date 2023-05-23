@@ -1,0 +1,192 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+  // previewFeatures = []
+}
+
+generator dbml {
+  provider = "prisma-dbml-generator"
+}
+
+generator nestgraphql {
+  provider     = "prisma-nestjs-graphql"
+  output       = "../src/@generated"
+  emitSingle   = true
+  emitCompiled = true
+}
+
+// generator class_validator {
+//   provider = "prisma-class-validator-generator"
+//   output   = "../src/@generated"
+// }
+
+model User {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  email     String   @unique
+  password  String
+  firstname String?
+  lastname  String?
+
+  posts          Post[]
+  role           Role
+  organization   Organization?
+  workspace      Workspace?      @relation(fields: [workspaceId], references: [id])
+  workspaceId    String?
+  policyRoles    PolicyRole[]
+  workspaceRoles WorkspaceRole[]
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  published Boolean
+  title     String
+  content   String?
+
+  author   User?   @relation(fields: [authorId], references: [id])
+  authorId String?
+}
+
+model Organization {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  name        String   @unique
+  description String   @db.VarChar(100)
+
+  owner   User?   @relation(fields: [ownerId], references: [id])
+  ownerId String? @unique
+}
+
+model WorkspaceRole {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  role      Role     @default(USER)
+
+  Workspace   Workspace? @relation(fields: [workspaceId], references: [id])
+  workspaceId String?
+  users       User[]
+}
+
+model Workspace {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  key       String   @unique
+  name      String
+
+  members        User[]
+  projects       Project[]
+  workspaceRoles WorkspaceRole[]
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  name        String
+  key         String
+  description String?  @db.VarChar(100)
+  default     Boolean? @default(false)
+
+  workspace    Workspace     @relation(fields: [workspaceId], references: [id])
+  workspaceId  String
+  environments Environment[]
+
+  @@unique([key, workspaceId])
+  @@index([key])
+}
+
+model Environment {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  name      String
+  key       String
+
+  project     Project      @relation(fields: [projectId], references: [id])
+  projectId   String
+  policyRoles PolicyRole[]
+
+  @@unique([key, projectId])
+  @@index([key])
+}
+
+model Action {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  name      String
+  key       String
+
+  resources ActionOnResource[]
+  policy    Policy[]
+}
+
+model ActionOnResource {
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  createdBy  String
+  modifiedBy String
+
+  action     Action   @relation(fields: [actionId], references: [id])
+  actionId   String
+  resource   Resource @relation(fields: [resourceId], references: [id])
+  resourceId String
+}
+
+model PolicyRole {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  name      String
+  key       String
+
+  environment   Environment @relation(fields: [environmentId], references: [id])
+  environmentId String
+  users         User[]
+  policy        Policy      @relation(fields: [policyId], references: [id])
+  policyId      String
+}
+
+model Policy {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  name      String
+  key       String
+  allowed   Boolean  @default(false)
+
+  action    Action       @relation(fields: [actionId], references: [id])
+  actionId  String
+  resources Resource[]
+  roles     PolicyRole[]
+}
+
+model Resource {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  name      String
+  key       String
+
+  policy   Policy             @relation(fields: [policyId], references: [id])
+  policyId String
+  actions  ActionOnResource[]
+}
+
+enum Role {
+  ADMIN
+  USER
+  EDITOR
+}

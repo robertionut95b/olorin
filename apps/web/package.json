@@ -1,0 +1,37 @@
+{
+  "name": "web",
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "vite dev --port 3000 --open",
+    "build": "vite build",
+    "package": "vite package",
+    "preview": "vite preview",
+    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "check:watch": "svelte-check --tsconfig ./tsconfig.json --watch",
+    "lint": "prettier --check --ignore-path=../../.prettierignore . && eslint \"src\"",
+    "format": "prettier --write --ignore-path=../../.prettierignore ."
+  },
+  "dependencies": {
+    "@lucia-auth/adapter-prisma": "^2.0.0",
+    "lucia-auth": "^1.5.0",
+    "ui": "*"
+  },
+  "devDependencies": {
+    "@skeletonlabs/skeleton": "^1.5.1",
+    "@sveltejs/adapter-auto": "latest",
+    "@sveltejs/kit": "latest",
+    "autoprefixer": "^10.4.14",
+    "eslint-config-custom": "*",
+    "postcss": "^8.4.23",
+    "postcss-load-config": "^4.0.1",
+    "prisma": "^4.14.1",
+    "svelte": "^3.44.0",
+    "svelte-check": "^2.7.1",
+    "svelte-preprocess": "^5.0.3",
+    "tailwindcss": "^3.3.1",
+    "tslib": "^2.3.1",
+    "typescript": "^4.7.2",
+    "vite": "^4.0.0"
+  },
+  "type": "module"
+}

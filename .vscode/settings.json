@@ -1,0 +1,7 @@
+{
+    "eslint.workingDirectories": [
+      "./apps",
+      "./apps/web",
+      "./apps/backend",
+    ]
+}

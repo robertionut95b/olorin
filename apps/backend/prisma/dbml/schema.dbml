@@ -1,0 +1,183 @@
+//// ------------------------------------------------------
+//// THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+//// ------------------------------------------------------
+
+Table User {
+  id String [pk]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  email String [unique, not null]
+  password String [not null]
+  firstname String
+  lastname String
+  posts Post [not null]
+  role Role [not null]
+  organization Organization
+  workspace Workspace
+  workspaceId String
+  policyRoles PolicyRole [not null]
+  workspaceRoles WorkspaceRole [not null]
+}
+
+Table Post {
+  id String [pk]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  published Boolean [not null]
+  title String [not null]
+  content String
+  author User
+  authorId String
+}
+
+Table Organization {
+  id String [pk]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  name String [unique, not null]
+  description String [not null]
+  owner User
+  ownerId String [unique]
+}
+
+Table WorkspaceRole {
+  id String [pk]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  role Role [not null, default: 'USER']
+  Workspace Workspace
+  workspaceId String
+  users User [not null]
+}
+
+Table Workspace {
+  id String [pk]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  key String [unique, not null]
+  name String [not null]
+  members User [not null]
+  projects Project [not null]
+  workspaceRoles WorkspaceRole [not null]
+}
+
+Table Project {
+  id String [pk]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  name String [not null]
+  key String [not null]
+  description String
+  default Boolean [default: false]
+  workspace Workspace [not null]
+  workspaceId String [not null]
+  environments Environment [not null]
+
+  indexes {
+    (key, workspaceId) [unique]
+  }
+}
+
+Table Environment {
+  id String [pk]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  name String [not null]
+  key String [not null]
+  project Project [not null]
+  projectId String [not null]
+  policyRoles PolicyRole [not null]
+
+  indexes {
+    (key, projectId) [unique]
+  }
+}
+
+Table Action {
+  id String [pk]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  name String [not null]
+  key String [not null]
+  resources ActionOnResource [not null]
+  policy Policy [not null]
+}
+
+Table ActionOnResource {
+  id String [pk]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  createdBy String [not null]
+  modifiedBy String [not null]
+  action Action [not null]
+  actionId String [not null]
+  resource Resource [not null]
+  resourceId String [not null]
+}
+
+Table PolicyRole {
+  id String [pk]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  name String [not null]
+  key String [not null]
+  environment Environment [not null]
+  environmentId String [not null]
+  users User [not null]
+  policy Policy [not null]
+  policyId String [not null]
+}
+
+Table Policy {
+  id String [pk]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  name String [not null]
+  key String [not null]
+  allowed Boolean [not null, default: false]
+  action Action [not null]
+  actionId String [not null]
+  resources Resource [not null]
+  roles PolicyRole [not null]
+}
+
+Table Resource {
+  id String [pk]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  name String [not null]
+  key String [not null]
+  policy Policy [not null]
+  policyId String [not null]
+  actions ActionOnResource [not null]
+}
+
+Enum Role {
+  ADMIN
+  USER
+  EDITOR
+}
+
+Ref: User.workspaceId > Workspace.id
+
+Ref: Post.authorId > User.id
+
+Ref: Organization.ownerId - User.id
+
+Ref: WorkspaceRole.workspaceId > Workspace.id
+
+Ref: Project.workspaceId > Workspace.id
+
+Ref: Environment.projectId > Project.id
+
+Ref: ActionOnResource.actionId > Action.id
+
+Ref: ActionOnResource.resourceId > Resource.id
+
+Ref: PolicyRole.environmentId > Environment.id
+
+Ref: PolicyRole.policyId > Policy.id
+
+Ref: Policy.actionId > Action.id
+
+Ref: Resource.policyId > Policy.id
