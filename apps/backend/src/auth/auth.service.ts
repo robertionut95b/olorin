@@ -6,6 +6,8 @@ import {
   BadRequestException,
   ConflictException,
   UnauthorizedException,
+  InternalServerErrorException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -14,6 +16,8 @@ import { SignupInput } from './dto/signup.input';
 import { Token } from './models/token.model';
 import { SecurityConfig } from 'src/common/configs/config.interface';
 import { OauthSignupInput } from './dto/oauthSignup.input';
+import { JwtDto } from './dto/jwt.dto';
+import { RefreshJwtDto } from './dto/refreshJwt.dto';
 
 @Injectable()
 export class AuthService {
@@ -52,7 +56,7 @@ export class AuthService {
     }
   }
 
-  async login(email: string, password: string): Promise<Token> {
+  async login(email: string, password: string): Promise<Token & User> {
     const user = await this.prisma.user.findUnique({ where: { email } });
 
     if (!user) {
@@ -68,9 +72,15 @@ export class AuthService {
       throw new BadRequestException('Invalid password');
     }
 
-    return this.generateTokens({
+    const { accessToken, refreshToken } = await this.generateTokens({
       userId: user.id,
     });
+
+    return {
+      ...user,
+      accessToken,
+      refreshToken,
+    };
   }
 
   validateUser(userId: string): Promise<User> {
@@ -82,10 +92,12 @@ export class AuthService {
     return this.prisma.user.findUnique({ where: { id } });
   }
 
-  generateTokens(payload: { userId: string }): Token {
+  async generateTokens(payload: { userId: string }): Promise<Token> {
+    const accessToken = this.generateAccessToken(payload);
+    const refreshToken = await this.generateRefreshToken(payload);
     return {
-      accessToken: this.generateAccessToken(payload),
-      refreshToken: this.generateRefreshToken(payload),
+      accessToken,
+      refreshToken: refreshToken.token,
     };
   }
 
@@ -93,22 +105,119 @@ export class AuthService {
     return this.jwtService.sign(payload);
   }
 
-  private generateRefreshToken(payload: { userId: string }): string {
+  private async generateRefreshToken(payload: { userId: string }) {
     const securityConfig = this.configService.get<SecurityConfig>('security');
-    return this.jwtService.sign(payload, {
-      secret: this.configService.get('JWT_REFRESH_SECRET'),
-      expiresIn: securityConfig.refreshIn,
+    const tokenId = crypto.randomUUID();
+    const token = this.jwtService.sign(
+      { ...payload, tokenId },
+      {
+        secret: this.configService.get('JWT_REFRESH_SECRET'),
+        expiresIn: securityConfig.refreshIn,
+      }
+    );
+    const { exp } = this.validateRefreshToken(token);
+    const tokenEntity = await this.prisma.refreshToken.create({
+      data: {
+        id: tokenId,
+        refreshToken: this.passwordService.hashPasswordSync(token),
+        userId: payload.userId,
+        reuseCount: 0,
+        exp: new Date(exp * 1000),
+      },
     });
+    return {
+      entity: tokenEntity,
+      token,
+    };
   }
 
   refreshToken(token: string) {
     try {
-      const { userId } = this.jwtService.verify(token, {
-        secret: this.configService.get('JWT_REFRESH_SECRET'),
-      });
-
+      const { userId } = this.validateRefreshToken(token);
       return this.generateTokens({
         userId,
+      });
+    } catch (e) {
+      throw new UnauthorizedException();
+    }
+  }
+
+  async getUserIfRefreshTokenIsValid(refreshTokenId: string, ip?: string) {
+    try {
+      const foundToken = await this.prisma.refreshToken.findUnique({
+        where: {
+          id: refreshTokenId,
+        },
+        include: {
+          User: {
+            include: {
+              devices: true,
+            },
+          },
+        },
+      });
+
+      if (foundToken == null) {
+        //refresh token is valid but the id is not in database
+        throw new UnauthorizedException();
+      }
+
+      if (foundToken.reuseCount > 0) {
+        // token reuse, invalidate and delete all refresh tokens
+        await this.prisma.refreshToken.deleteMany({
+          where: {
+            userId: foundToken.User.id,
+          },
+        });
+        throw new UnauthorizedException();
+      }
+
+      if (ip) {
+        // check if the token is reused from another address by comparing request's ip with registered devices on login
+        const devices = foundToken.User.devices ?? [];
+        const isIpInDevices = devices.some((d) => d.ip === ip);
+        if (!isIpInDevices) {
+          // token reuse from another address, invalidate all refresh tokens
+          await this.prisma.refreshToken.deleteMany({
+            where: {
+              userId: foundToken.User.id,
+            },
+          });
+          throw new UnauthorizedException();
+        }
+      }
+
+      // increment reuse counter
+      await this.prisma.refreshToken.update({
+        where: {
+          id: refreshTokenId,
+        },
+        data: {
+          reuseCount: foundToken.reuseCount + 1,
+        },
+      });
+
+      return foundToken.User;
+    } catch (e) {
+      throw new UnauthorizedException();
+    }
+  }
+
+  async logout(refreshToken: string) {
+    const { tokenId } = this.validateRefreshToken(refreshToken);
+    if (tokenId) {
+      await this.prisma.refreshToken.delete({
+        where: {
+          id: tokenId,
+        },
+      });
+    }
+  }
+
+  validateRefreshToken(token: string) {
+    try {
+      return this.jwtService.verify<RefreshJwtDto>(token, {
+        secret: this.configService.get('JWT_REFRESH_SECRET'),
       });
     } catch (e) {
       throw new UnauthorizedException();

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { hash, compare } from 'bcrypt';
+import { hash, compare, hashSync } from 'bcrypt';
 import { SecurityConfig } from 'src/common/configs/config.interface';
 
 @Injectable()
@@ -22,5 +22,9 @@ export class PasswordService {
 
   hashPassword(password: string): Promise<string> {
     return hash(password, this.bcryptSaltRounds);
+  }
+
+  hashPasswordSync(password: string): string {
+    return hashSync(password, this.bcryptSaltRounds);
   }
 }

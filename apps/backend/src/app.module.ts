@@ -11,6 +11,7 @@ import { PostsModule } from 'src/posts/posts.module';
 import config from 'src/common/configs/config';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { GqlConfigService } from './gql-config.service';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
   imports: [
@@ -31,6 +32,10 @@ import { GqlConfigService } from './gql-config.service';
     GraphQLModule.forRootAsync<ApolloDriverConfig>({
       driver: ApolloDriver,
       useClass: GqlConfigService,
+    }),
+
+    EventEmitterModule.forRoot({
+      global: true,
     }),
 
     AuthModule,

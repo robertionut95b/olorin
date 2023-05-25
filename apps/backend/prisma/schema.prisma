@@ -26,13 +26,15 @@ generator nestgraphql {
 // }
 
 model User {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  email     String   @unique
+  id        String         @id @default(cuid())
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  email     String         @unique
   password  String
   firstname String?
   lastname  String?
+  tokens    RefreshToken[]
+  devices   Device[]
 
   posts          Post[]
   role           Role
@@ -41,6 +43,31 @@ model User {
   workspaceId    String?
   policyRoles    PolicyRole[]
   workspaceRoles WorkspaceRole[]
+}
+
+model RefreshToken {
+  id           String   @id @default(cuid())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  refreshToken String   @unique
+  reuseCount   Int      @default(0)
+  exp          DateTime
+
+  User   User   @relation(fields: [userId], references: [id])
+  userId String
+}
+
+model Device {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  agent     String
+  ip        String   @unique
+  name      String?
+  lastLogin DateTime @default(now())
+
+  User   User   @relation(fields: [userId], references: [id])
+  userId String
 }
 
 model Post {
