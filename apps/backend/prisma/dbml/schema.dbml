@@ -10,6 +10,8 @@ Table User {
   password String [not null]
   firstname String
   lastname String
+  tokens RefreshToken [not null]
+  devices Device [not null]
   posts Post [not null]
   role Role [not null]
   organization Organization
@@ -17,6 +19,29 @@ Table User {
   workspaceId String
   policyRoles PolicyRole [not null]
   workspaceRoles WorkspaceRole [not null]
+}
+
+Table RefreshToken {
+  id String [pk]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  refreshToken String [unique, not null]
+  reuseCount Int [not null, default: 0]
+  exp DateTime [not null]
+  User User [not null]
+  userId String [not null]
+}
+
+Table Device {
+  id String [pk]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  agent String [not null]
+  ip String [unique, not null]
+  name String
+  lastLogin DateTime [default: `now()`, not null]
+  User User [not null]
+  userId String [not null]
 }
 
 Table Post {
@@ -159,6 +184,10 @@ Enum Role {
 }
 
 Ref: User.workspaceId > Workspace.id
+
+Ref: RefreshToken.userId > User.id
+
+Ref: Device.userId > User.id
 
 Ref: Post.authorId > User.id
 

@@ -11,6 +11,8 @@ import { SecurityConfig } from 'src/common/configs/config.interface';
 import { GithubStrategy } from './strategies/github.strategy';
 import { GithubOauthController } from './github-oauth.controller';
 import { GithubOauthGuard } from './guards/github.guard';
+import { JwtRefreshTokenStrategy } from './strategies/jwtRefresh.strategy';
+import { UserLoginListener } from './listeners/userLogin.listener';
 
 @Module({
   imports: [
@@ -32,10 +34,12 @@ import { GithubOauthGuard } from './guards/github.guard';
     AuthService,
     AuthResolver,
     JwtStrategy,
+    JwtRefreshTokenStrategy,
     GithubStrategy,
     GqlAuthGuard,
     GithubOauthGuard,
     PasswordService,
+    UserLoginListener,
   ],
   controllers: [GithubOauthController],
   exports: [GqlAuthGuard],

@@ -9,6 +9,7 @@ import type {
   NestConfig,
   SwaggerConfig,
 } from 'src/common/configs/config.interface';
+import helmet from 'helmet';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -45,6 +46,9 @@ async function bootstrap() {
   if (corsConfig.enabled) {
     app.enableCors();
   }
+
+  // use helmet
+  app.use(helmet());
 
   await app.listen(process.env.PORT || nestConfig.port || 8000);
 }

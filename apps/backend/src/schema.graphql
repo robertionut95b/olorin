@@ -36,10 +36,15 @@ input LoginInput {
   password: String!
 }
 
+type LogoutResponse {
+  message: String!
+}
+
 type Mutation {
   changePassword(data: ChangePasswordInput!): User!
   createPost(data: CreatePostInput!): Post!
   login(data: LoginInput!): Auth!
+  logout(token: JWT!): LogoutResponse!
   refreshToken(token: JWT!): Token!
   signup(data: SignupInput!): Auth!
   updateUser(data: UpdateUserInput!): User!
